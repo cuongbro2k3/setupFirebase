@@ -1,5 +1,5 @@
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import { FlatList, StyleSheet, Text, ToastAndroid, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { router } from 'expo-router';
@@ -11,108 +11,103 @@ interface data {
 }
 
 const index = () => {
-    const [user, setUser] = useState(false)
-    const [data, setData] = useState<any[]>([])
+    const [user, setUser] = useState(false);
+    const [data, setData] = useState<any[]>([]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
                 console.log('User is signed in:', user.uid);
-                setUser(true)
+                setUser(true);
             } else {
                 console.log('User is signed out');
-                setUser(false)
+                setUser(false);
             }
         });
         return unsubscribe;
     }, []);
 
     const LogOut = async () => {
-        try{
-            await firebaseSignOut(auth)
-            console.log('Đăng xuất thành công')
-        }catch(error) {
-            console.log('Lỗi đăng xuất', error)
+        try {
+            await firebaseSignOut(auth);
+            console.log('Đăng xuất thành công');
+            setData([])
+        } catch (error) {
+            console.log('Lỗi đăng xuất', error);
         }
-    }
+    };
 
     const fetchData = async () => {
         try {
-            const snapshot = await get(ref(db, 'users/'))
+            const snapshot = await get(ref(db, 'users/'));
             if (snapshot.exists()) {
-                const data = snapshot.val()
-    
+                const data = snapshot.val();
+
                 const usersArray = Object.entries(data).map(
                     ([id, value]: [string, any]) => ({
                         id,
-                        ...value
+                        ...value,
                     })
-                )
-    
-                console.log('Gọi dữ liệu thành công!')
-                setData(usersArray)
+                );
+
+                console.log('Gọi dữ liệu thành công!');
+                setData(usersArray);
             } else {
-                console.log('Không có dữ liệu trong Firebase')
+                console.log('Không có dữ liệu trong Firebase');
             }
         } catch (error) {
-            console.error('Lỗi khi fetch dữ liệu:', error)
+            ToastAndroid.show('Vui lòng đăng nhập mới call được sql', ToastAndroid.LONG);
         }
-    }
-    
+    };
 
-    const renderItem = ({ item } : {item: data}) => (
+    const renderItem = ({ item }: { item: data }) => (
         <View style={styles.itemContainer}>
-          <Text style={styles.itemText}>ID: {item.id}</Text>
-          {Object.entries(item).map(([key, value]) => {
-            if (key !== 'id') {
-              return (
-                <Text key={key} style={styles.itemText}>
-                  {key}: {JSON.stringify(value)}
-                </Text>
-              );
-            }
-            return null;
-          })}
+            <Text style={styles.itemText}>ID: {item.id}</Text>
+            {Object.entries(item).map(([key, value]) => {
+                if (key !== 'id') {
+                    return (
+                        <Text key={key} style={styles.itemText}>
+                            {key}: {JSON.stringify(value)}
+                        </Text>
+                    );
+                }
+                return null;
+            })}
         </View>
     );
 
     return (
-        <View>
-            <Text>index</Text>
-            {
-                user ? (
-                    <TouchableOpacity onPress={LogOut}>
-                        <Text>Đăng xuất</Text>
-                    </TouchableOpacity>
-                ) : (
-                    <TouchableOpacity onPress={() => router.push('/(tabs)/login')}>
-                        <Text>Đăng Nhập</Text>
-                    </TouchableOpacity>
-                )
-            }
+        <View style={styles.container}>
+            <Text style={styles.title}>Trang chủ</Text>
+            {user ? (
+                <TouchableOpacity onPress={LogOut} style={styles.button}>
+                    <Text style={styles.buttonText}>Đăng xuất</Text>
+                </TouchableOpacity>
+            ) : (
+                <TouchableOpacity onPress={() => router.push('/(tabs)/login')} style={styles.button}>
+                    <Text style={styles.buttonText}>Đăng Nhập</Text>
+                </TouchableOpacity>
+            )}
 
-            <TouchableOpacity onPress={fetchData}>
-                <Text>Gọi SQL</Text>
+            <TouchableOpacity onPress={fetchData} style={styles.button}>
+                <Text style={styles.buttonText}>Gọi SQL</Text>
             </TouchableOpacity>
 
-            {
-                data ? (
-                    <FlatList
-                        data={data}
-                        keyExtractor={(item) => item.id}
-                        renderItem={renderItem}
-                        style={styles.list}
-                    />
-                ) : (
-                    <></>
-                )
-            }
-
+            {data.length > 0 ? (
+                <FlatList
+                    data={data}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderItem}
+                    style={styles.list}
+                />
+            ) : (
+                <Text style={styles.emptyText}>Không có dữ liệu</Text>
+            )}
         </View>
-    )
-}
+    );
+};
 
-export default index
+export default index;
 
 const styles = StyleSheet.create({
     container: {
@@ -129,10 +124,12 @@ const styles = StyleSheet.create({
     },
     button: {
         backgroundColor: '#4285f4',
-        padding: 15,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
         borderRadius: 8,
         alignItems: 'center',
         marginBottom: 20,
+        elevation: 3,
     },
     buttonText: {
         color: 'white',
@@ -140,33 +137,28 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     itemContainer: {
-        backgroundColor: 'white',
+        backgroundColor: '#fff',
         padding: 15,
-        marginBottom: 10,
+        marginBottom: 15,
         borderRadius: 8,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+        elevation: 3,
     },
     itemText: {
         fontSize: 14,
-        marginBottom: 5,
         color: '#555',
+        marginBottom: 5,
     },
     list: {
         marginTop: 10,
     },
     emptyText: {
         textAlign: 'center',
-        marginTop: 20,
-        color: '#777',
+        color: '#888',
         fontSize: 16,
-    },
-    errorText: {
-        color: 'red',
-        textAlign: 'center',
-        marginBottom: 10,
+        marginTop: 20,
     },
 });

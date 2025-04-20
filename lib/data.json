@@ -1,0 +1,12 @@
+{
+    "users": {
+        "001": {
+            "name": "Trần Quang Cường",
+            "age": 22
+        },
+        "002": {
+            "name": "Mai Thị Thùy Dương",
+            "age": 22
+        }
+    }
+}
